@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Omar is a web developer from the Middle East who builds responsive sites, backend systems, and fun internet pages." />
+  <meta name="author" content="Omar" />
+  <meta name="keywords" content="Omar, web developer, backend developer, Middle East, websites, portfolio, responsive design" />
+  <title>Omar | Web Developer and Backend Builder</title>
+  <meta property="og:title" content="Omar | Web Developer and Backend Builder" />
+  <meta property="og:description" content="Omar is a web developer from the Middle East who builds responsive sites, backend systems, and fun internet pages." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Omar | Web Developer and Backend Builder" />
+  <meta name="twitter:description" content="Omar is a web developer from the Middle East who builds responsive sites, backend systems, and fun internet pages." />
+  <link rel="stylesheet" href="send.css">
+  <script src="script.js" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Omar",
+    "jobTitle": "Web Developer",
+    "description": "Omar builds responsive websites, backend systems, and fun Gen Z-style internet pages.",
+    "keywords": ["Omar", "web developer", "backend developer", "portfolio", "Middle East"]
+  }
+  </script>
+</head>
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-outline" aria-hidden="true"></div>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+ 
+
+  
+  <main id="main-content">
+      
+      <section class="compose-email section">
+      <div class="section-inner">
+    <span class="section-label">Send an email</span>
+        <p class="section-description">idk why but since im releasing this i gotta make it look good</p>
+        <form action="/send" method="post" class="msg-form">
+          <input type="email" name="to" placeholder="To" required>
+          <input type="text" name="subject" placeholder="Subject" required>
+          <textarea name="message" placeholder="Your message" required></textarea>
+          <button type="submit">Send</button>
+        </form>
+
+
+
+      </div>
+      </section>
+
+    </main>
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  const to = params.get('to');
+  const subject = params.get('subject');
+
+  if (to) {
+    document.querySelector('input[name="to"]').value = to;
+  }
+
+  if (subject) {
+    document.querySelector('input[name="subject"]').value = subject;
+  }
+</script>
+    
+</body>
+</html>
