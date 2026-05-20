@@ -15,9 +15,7 @@ Static frontend served by Express. Visitors can send me a message through the co
 - Confirmation banner on successful form submission
 - Basic in-memory rate limiting
 
-## Stack
 
-Node.js, Express, Resend, vanilla HTML/CSS/JS
 
 ## Setup
 
