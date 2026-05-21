@@ -245,6 +245,8 @@ app.post("/webhook", limit, async (req, res) => {
 
     if (event.type === "email.received") {
       const email = event.data || {};
+      const rawBody = email.text || email.body || email.html || email.plain_text || email.raw_email || "No content";
+      const safeBody = escapeHtml(String(rawBody)).replace(/<[^>]*>/g, '');
 
       await resend.emails.send({
         from: "contact@3mro.xyz",
@@ -255,7 +257,7 @@ app.post("/webhook", limit, async (req, res) => {
           <p><strong>From:</strong> ${escapeHtml(email.from || 'Unknown')}</p>
           <p><strong>Subject:</strong> ${escapeHtml(email.subject || 'No subject')}</p>
           <hr />
-          <pre>${escapeHtml(email.text || "No content")}</pre>
+          <pre>${safeBody}</pre>
         `
       });
 
