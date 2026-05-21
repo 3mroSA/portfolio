@@ -10,22 +10,23 @@ const e = require('express');
 
 const app = express();
 app.use(cookieParser());
+app.set('trust proxy', 1);
 const port = process.env.PORT || 3000;
 
 const resend = new Resend(process.env.RESEND_API);
-const crypto = require('crypto');
 
-const processedEvents = new Set();
-
-app.use(express.json({ limit: '10kb', verify: (req, res, buf) => { req.rawBody = buf } }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.use((req, res, next) => {
+  if (req.path === '/webhook') return next();
+  express.json({ limit: '10kb' })(req, res, next);
 });
 
-// simple rate limit
+app.use((req, res, next) => {
+  if (req.path === '/webhook') return next();
+  express.urlencoded({ extended: true, limit: '10kb' })(req, res, next);
+});
+app.use(express.static(path.join(__dirname, 'public')));
+
+
 const store = new Map();
 const windowMs = 10 * 60 * 1000;
 const maxHits = 6;
@@ -112,7 +113,7 @@ if (email == "contact@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
 
 
         Email: ${escapeHtml(email)}
-      Reply at <a href="3mro.xyz/reply?to=${encodeURIComponent(email)}&subject=${encodeURIComponent('Reply to your message')}" style="color: #1a73e8; text-decoration: none;">${escapeHtml(email)}</a>
+      Reply at <a href="https://3mro.xyz/reply?to=${encodeURIComponent(email)}&subject=${encodeURIComponent('Reply to your message')}" style="color: #1a73e8; text-decoration: none;">${escapeHtml(email)}</a>
       `,
      
     });
@@ -134,13 +135,11 @@ app.post('/send', limit, async (req, res) => {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  if (!decoded.isAdmin) {
-    return res.status(403).json({ error: 'Forbidden' });
-
-  }
-  
-  }catch(e){
-return res.status(501).json({ error: 'Error verifying token' });    
+    if (!decoded.isAdmin) {
+      return res.status(403).json({ error: 'Forbidden' });
+    };
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
   const to = cleanTxt(req.body.to, 5000);
   const subject = cleanTxt(req.body.subject, 200);
@@ -214,62 +213,86 @@ app.post('/login', limit , async(req, res) => {
   
   
 });
-
-app.post("/webhook", limit, async (req, res) => {
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // require raw body for signature verification
-    if (!req.rawBody) return res.status(400).json({ error: 'Raw body required' });
+    const payload = req.body.toString();
 
-    const sigHeader = req.get('resend-signature') || req.get('x-resend-signature') || req.get('signature');
-    if (!sigHeader) return res.status(401).json({ error: 'Missing signature' });
+    const event = resend.webhooks.verify({
+      payload,
+      headers: {
+        id: req.headers['svix-id'],
+        timestamp: req.headers['svix-timestamp'],
+        signature: req.headers['svix-signature'],
+      },
+      webhookSecret: process.env.WEBHOOK_SECRET,
+    });
 
-    const secret = process.env.WEBHOOK_SECRET;
-    if (!secret) {
-      console.error('no webhook secret');
-      return res.status(500).json({ error: 'Server misconfigured' });
+    if (event.type !== 'email.received') {
+      return res.json({ ignored: true });
     }
 
-    const expected = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
-    const sigBuf = Buffer.from(String(sigHeader));
-    const expectedBuf = Buffer.from(String(expected));
-    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
-      return res.status(401).json({ error: 'Invalid signature' });
+    const { data: email } = await resend.emails.receiving.get(event.data.email_id);
+
+    if (!email?.raw?.download_url) {
+      return res.status(500).json({ error: 'No raw email available' });
     }
 
-    const event = req.body;
-    const eventId = event && (event.id || (event.data && event.data.id));
-    if (eventId) {
-      if (processedEvents.has(eventId)) return res.json({ ignored: true });
-      processedEvents.add(eventId);
-    }
+    const raw = await fetch(email.raw.download_url);
+    const rawText = await raw.text();
 
-    if (event.type === "email.received") {
-      const email = event.data || {};
-      const rawBody = email.text || email.body || email.html || email.plain_text || email.raw_email || "No content";
-      const safeBody = escapeHtml(String(rawBody)).replace(/<[^>]*>/g, '');
+    const { simpleParser } = require('mailparser');
+    const parsed = await simpleParser(rawText);
 
-      await resend.emails.send({
-        from: "contact@3mro.xyz",
-        to: process.env.RECEIVING_EMAIL,
-        subject: `Forwarded: ${escapeHtml(email.subject || "No subject")}`,
-        html: `
-          <h2>New Email Received</h2>
-          <p><strong>From:</strong> ${escapeHtml(email.from || 'Unknown')}</p>
-          <p><strong>Subject:</strong> ${escapeHtml(email.subject || 'No subject')}</p>
-          <hr />
-          <pre>${safeBody}</pre>
-        `
-      });
+    const from = parsed.from?.text || 'Unknown';
+    const subject = parsed.subject || 'No subject';
+    const content = parsed.text || '';
 
-      return res.json({ success: true });
-    }
+    await resend.emails.send({
+      from: 'contact@3mro.xyz',
+      to: process.env.RECEIVING_EMAIL,
+      subject: `Forwarded: ${subject}`,
+     html: `
+  <div style="font-family: system-ui, sans-serif; color:#111; line-height:1.5;">
+    <h2 style="margin: 0 0 0.75rem; font-size: 20px;">Forwarded email from ${escapeHtml(from)}</h2>
 
-    return res.json({ ignored: true });
+    <p style="margin: 0 0 1rem; font-size: 15px;">
+      <strong>From:</strong> ${escapeHtml(from)}
+    </p>
+
+    <p style="margin: 0 0 1rem; font-size: 15px;">
+      <strong>To:</strong> contact@3mro.xyz
+    </p>
+
+    <p style="margin: 0 0 1rem; font-size: 15px;">
+      <strong>Subject:</strong> ${escapeHtml(subject)}
+    </p>
+
+    <div style="padding: 16px; background: #f7f9fc; border: 1px solid #dde3eb; border-radius: 12px;">
+      <p style="margin: 0 0 0.5rem; font-weight: 600; color: #222;">Message</p>
+      <p style="margin: 0; white-space: pre-wrap; color: #333;">
+        ${escapeHtml(content)}
+      </p>
+    </div>
+  </div>
+
+  <br>
+
+  Email: ${escapeHtml(from)}
+  Reply at <a href="https://3mro.xyz/reply?to=${encodeURIComponent(from)}&subject=${encodeURIComponent('Reply to forwarded email')}"
+  style="color: #1a73e8; text-decoration: none;">
+    ${escapeHtml(from)}
+  </a>
+`,
+    });
+
+    return res.json({ success: true });
+
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error('Webhook error:', err);
+    return res.status(400).json({ error: 'Webhook failed' });
   }
 });
+
 // serving
 
 
