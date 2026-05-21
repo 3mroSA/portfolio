@@ -253,7 +253,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
       subject: `Forwarded: ${subject}`,
      html: `
   <div style="font-family: system-ui, sans-serif; color:#111; line-height:1.5;">
-    <h2 style="margin: 0 0 0.75rem; font-size: 20px;">Forwarded email from ${escapeHtml(from)}</h2>
+    <h2 style="margin: 0 0 0.75rem; font-size: 20px;">Forwarded  from ${escapeHtml(from)}</h2>
 
     <p style="margin: 0 0 1rem; font-size: 15px;">
       <strong>From:</strong> ${escapeHtml(from)}
@@ -277,8 +277,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
   <br>
 
-  Email: ${escapeHtml(from)}
-  Reply at <a href="https://3mro.xyz/reply?to=${encodeURIComponent(from)}&subject=${encodeURIComponent('Reply to forwarded email')}"
+  Email: ${escapeHtml(from.email || from)}
+  Reply at <a href="https://3mro.xyz/reply?to=${encodeURIComponent(from.email)}&subject=${encodeURIComponent(`Re: ${subject}`)}"
   style="color: #1a73e8; text-decoration: none;">
     ${escapeHtml(from)}
   </a>
