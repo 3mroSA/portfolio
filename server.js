@@ -13,8 +13,11 @@ app.use(cookieParser());
 const port = process.env.PORT || 3000;
 
 const resend = new Resend(process.env.RESEND_API);
+const crypto = require('crypto');
 
-app.use(express.json({ limit: '10kb' }));
+const processedEvents = new Set();
+
+app.use(express.json({ limit: '10kb', verify: (req, res, buf) => { req.rawBody = buf } }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -198,7 +201,58 @@ app.post('/login', limit , async(req, res) => {
   
 });
 
+app.post("/webhook", limit, async (req, res) => {
+  try {
+    if (!req.rawBody) return res.status(400).json({ error: 'Raw body required' });
 
+    const sigHeader = req.get('resend-signature') || req.get('x-resend-signature') || req.get('signature');
+    if (!sigHeader) return res.status(401).json({ error: 'Missing signature' });
+
+    const secret = process.env.WEBHOOK_SECRET;
+    if (!secret) {
+      console.error('no webhook secret');
+      return res.status(500).json({ error: 'Server misconfigured' });
+    }
+
+    const expected = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+    const sigBuf = Buffer.from(String(sigHeader));
+    const expectedBuf = Buffer.from(String(expected));
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const event = req.body;
+    const eventId = event && (event.id || (event.data && event.data.id));
+    if (eventId) {
+      if (processedEvents.has(eventId)) return res.json({ ignored: true });
+      processedEvents.add(eventId);
+    }
+
+    if (event.type === "email.received") {
+      const email = event.data || {};
+
+      await resend.emails.send({
+        from: "contact@3mro.xyz",
+        to: process.env.RECEIVING_EMAIL,
+        subject: `Forwarded: ${escapeHtml(email.subject || "No subject")}`,
+        html: `
+          <h2>New Email Received</h2>
+          <p><strong>From:</strong> ${escapeHtml(email.from || 'Unknown')}</p>
+          <p><strong>Subject:</strong> ${escapeHtml(email.subject || 'No subject')}</p>
+          <hr />
+          <pre>${escapeHtml(email.text || "No content")}</pre>
+        `
+      });
+
+      return res.json({ success: true });
+    }
+
+    return res.json({ ignored: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 // serving
 
 
