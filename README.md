@@ -51,8 +51,8 @@ Go to `/login` and enter your `ADMIN_PASS` to get a JWT cookie. `/reply` serves 
 
 ## Notes
 
-- Rate limiting is in-memory, so it resets on restart. 
-
+- Rate limiting is in-memory, so it resets on restart.
+- To apply the Resend Intergration for the recieving and sending, look at the docs. https://resend.com/docs/
 ## Files
 
 ```
