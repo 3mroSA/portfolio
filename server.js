@@ -93,10 +93,9 @@ if (email == "omar@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
 }
 
   try {
-    console.log('Sending email...');
 
     const result = await resend.emails.send({
-      from: 'Portfolio <omar@3mro.xyz>',
+      from: 'Automated <no-reply@3mro.xyz>',
       to: process.env.RECEIVING_EMAIL,
       subject: `New message from ${name}`,
       reply_to: email,
@@ -118,7 +117,57 @@ if (email == "omar@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
      
     });
 
-    console.log('Email sent:', result);
+    const result2 = await resend.emails.send({
+from: 'Automated <no-reply@3mro.xyz>',
+to: email,
+subject: `Message received`,
+html: `
+  <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f5f7fb; padding:32px; color:#111;">
+
+    <div style="max-width:560px;margin:0 auto;background:white;border:1px solid #e6eaf0;border-radius:18px;overflow:hidden;">
+
+      <div style="padding:28px;">
+
+        <div style="font-size:13px;color:#666;margin-bottom:8px;">
+          3mro.xyz
+        </div>
+
+        <h2 style="margin:0 0 14px;font-size:24px;color:#111;">
+          Message received
+        </h2>
+
+        <p style="margin:0 0 18px;color:#333;line-height:1.6;">
+          Hey ${escapeHtml(name)}, your message was received successfully.
+        </p>
+
+        <div style="background:#f7f9fc;border:1px solid #dde3eb;border-radius:14px;padding:16px;">
+          <div style="font-size:13px;color:#666;margin-bottom:8px;">
+            Your message
+          </div>
+
+          <p style="margin:0;white-space:pre-wrap;color:#333;line-height:1.6;">
+            ${escapeHtml(message)}
+          </p>
+        </div>
+
+        <p style="margin:18px 0 0;color:#555;line-height:1.6;">
+          I’ll try to get back to you soon.
+        </p>
+
+        <p style="margin:20px 0 0;font-size:12px;color:#888;">
+          Automated confirmation, no reply needed.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+`
+
+
+    });
+    console.log('Email sent:', result, result2);
     res.redirect('/?sent=true');
   } catch (err) {
     console.error('Email send failed:', err);
@@ -247,43 +296,44 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     const subject = parsed.subject || 'No subject';
     const content = parsed.text || '';
 
-    await resend.emails.send({
-      from: 'Omar <omar@3mro.xyz>',
-      to: process.env.RECEIVING_EMAIL,
-      subject: `Forwarded: ${subject}`,
-     html: `
-  <div style="font-family: system-ui, sans-serif; color:#111; line-height:1.5;">
-    <h2 style="margin: 0 0 0.75rem; font-size: 20px;">Forwarded  from ${escapeHtml(from)}</h2>
+   const fromEmail = parsed.from?.value?.[0]?.address || 'unknown';
 
-    <p style="margin: 0 0 1rem; font-size: 15px;">
-      <strong>From:</strong> ${escapeHtml(from)}
-    </p>
+await resend.emails.send({
+  from: 'Omar <omar@3mro.xyz>',
+  to: process.env.RECEIVING_EMAIL,
+  subject: `Forwarded: ${subject}`,
+  html: `
+    <div style="font-family: system-ui, sans-serif; color:#111; line-height:1.5;">
 
-    <p style="margin: 0 0 1rem; font-size: 15px;">
-      <strong>To:</strong> omar@3mro.xyz
-    </p>
+      <h2 style="margin: 0 0 12px; font-size: 18px;">
+        New message received
+      </h2>
 
-    <p style="margin: 0 0 1rem; font-size: 15px;">
-      <strong>Subject:</strong> ${escapeHtml(subject)}
-    </p>
-
-    <div style="padding: 16px; background: #f7f9fc; border: 1px solid #dde3eb; border-radius: 12px;">
-      <p style="margin: 0 0 0.5rem; font-weight: 600; color: #222;">Message</p>
-      <p style="margin: 0; white-space: pre-wrap; color: #333;">
-        ${escapeHtml(content)}
+      <p style="margin: 0 0 8px; font-size: 14px;">
+        <strong>From:</strong> ${escapeHtml(fromEmail)}
       </p>
+
+      <p style="margin: 0 0 12px; font-size: 14px;">
+        <strong>Subject:</strong> ${escapeHtml(subject)}
+      </p>
+
+      <div style="padding: 14px; background: #f7f9fc; border: 1px solid #dde3eb; border-radius: 10px;">
+        <pre style="margin: 0; white-space: pre-wrap; color:#333;">
+${escapeHtml(content)}
+        </pre>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 13px;">
+        Reply:
+        <a href="https://3mro.xyz/reply?to=${encodeURIComponent(fromEmail)}&subject=${encodeURIComponent(`Re: ${subject}`)}"
+           style="color:#1a73e8; text-decoration:none;">
+          ${escapeHtml(fromEmail)}
+        </a>
+      </div>
+
     </div>
-  </div>
-
-  <br>
-
-  Email: ${escapeHtml(from.email || from)}
-  Reply at <a href="https://3mro.xyz/reply?to=${encodeURIComponent(from.email)}&subject=${encodeURIComponent(`Re: ${subject}`)}"
-  style="color: #1a73e8; text-decoration: none;">
-    ${escapeHtml(from)}
-  </a>
-`,
-    });
+  `
+});
 
     return res.json({ success: true });
 
