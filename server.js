@@ -88,7 +88,7 @@ app.post('/send-message', limit, async (req, res) => {
   if (!okEmail(email)) {
     return res.status(400).json({ error: 'Invalid email' });
   }
-if (email == "contact@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
+if (email == "omar@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
   return res.status(400).json({ error: 'Invalid email' });
 }
 
@@ -96,7 +96,7 @@ if (email == "contact@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
     console.log('Sending email...');
 
     const result = await resend.emails.send({
-      from: 'Portfolio <contact@3mro.xyz>',
+      from: 'Portfolio <omar@3mro.xyz>',
       to: process.env.RECEIVING_EMAIL,
       subject: `New message from ${name}`,
       reply_to: email,
@@ -181,7 +181,7 @@ const htmlMessage = `
   try {
     console.log('Sending email to:', recipients);
     const result = await resend.emails.send({
-      from: 'Omar <contact@3mro.xyz>',
+      from: 'Omar <omar@3mro.xyz>',
       to: recipients,
       subject,
       text: `${subject}\n\n${message}\n\nSent by Omar`,
@@ -248,7 +248,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     const content = parsed.text || '';
 
     await resend.emails.send({
-      from: 'contact@3mro.xyz',
+      from: 'Omar <omar@3mro.xyz>',
       to: process.env.RECEIVING_EMAIL,
       subject: `Forwarded: ${subject}`,
      html: `
@@ -260,7 +260,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     </p>
 
     <p style="margin: 0 0 1rem; font-size: 15px;">
-      <strong>To:</strong> contact@3mro.xyz
+      <strong>To:</strong> omar@3mro.xyz
     </p>
 
     <p style="margin: 0 0 1rem; font-size: 15px;">
