@@ -27,6 +27,7 @@ RECEIVING_EMAIL=you@example.com
 ADMIN_PASS=some-strong-password
 JWT_SECRET=some-long-secret
 PORT=3000
+WEBHOOK_SECRET=your-secret
 ```
 
 `PORT` defaults to 3000 if you leave it out.
