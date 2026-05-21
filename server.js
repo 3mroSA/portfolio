@@ -128,6 +128,20 @@ if (email == "contact@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
 
 
 app.post('/send', limit, async (req, res) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  if (!decoded.isAdmin) {
+    return res.status(403).json({ error: 'Forbidden' });
+
+  }
+  
+  }catch(e){
+return res.status(501).json({ error: 'Error verifying token' });    
+  }
   const to = cleanTxt(req.body.to, 5000);
   const subject = cleanTxt(req.body.subject, 200);
   const message = cleanTxt(req.body.message, 5000);
@@ -203,6 +217,7 @@ app.post('/login', limit , async(req, res) => {
 
 app.post("/webhook", limit, async (req, res) => {
   try {
+    // require raw body for signature verification
     if (!req.rawBody) return res.status(400).json({ error: 'Raw body required' });
 
     const sigHeader = req.get('resend-signature') || req.get('x-resend-signature') || req.get('signature');
