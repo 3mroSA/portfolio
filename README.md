@@ -65,9 +65,11 @@ public/style.css   styles
 
 ## Contributing
 
-PRs welcome. If you're touching anything email-related, add tests and keep secrets out of version control.
+PRs welcome. 
 
 ## License
 
 MIT
+
+
 ```
