@@ -87,6 +87,22 @@ if (search.get('sent')) {
   history.replaceState(null, '', newUrl);
 }
 
+const messageForm = document.querySelector('.msg-form');
+if (messageForm) {
+  messageForm.addEventListener('submit', (event) => {
+    if (messageForm.dataset.submitting === 'true') {
+      event.preventDefault();
+      return;
+    }
+
+    messageForm.dataset.submitting = 'true';
+    const submitButton = messageForm.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+    }
+  });
+}
 
   animate();
 
