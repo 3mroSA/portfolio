@@ -112,7 +112,7 @@ if (email == "omar@3mro.xyz" || email == process.env.RECEIVING_EMAIL) {
 
 
         Email: ${escapeHtml(email)}
-      Reply at <a href="https://3mro.xyz/reply?to=${encodeURIComponent(email)}&subject=${encodeURIComponent('Reply to your message')}" style="color: #1a73e8; text-decoration: none;">${escapeHtml(email)}</a>
+      Reply: <a href="https://3mro.xyz/reply?to=${encodeURIComponent(email)}&subject=${encodeURIComponent('Reply to your message')}" style="color: #1a73e8; text-decoration: none;">${escapeHtml(email)}</a>
       `,
      
     });
